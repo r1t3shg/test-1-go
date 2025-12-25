@@ -6,11 +6,28 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
+	"strings"
 	"time"
 )
 
 type HealthResponse struct {
 	Status string `json:"status"`
+}
+
+// getEnvVars returns a formatted string of all environment variables
+func getEnvVars() string {
+	envVars := os.Environ()
+	sort.Strings(envVars)
+	return strings.Join(envVars, ", ")
+}
+
+// getEnvVar gets an environment variable with a default value
+func getEnvVar(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
@@ -33,10 +50,11 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
+	port := getEnvVar("PORT", "8080")
+
+	// Log environment variables at startup
+	log.Printf("Server starting on port %s", port)
+	log.Printf("Environment variables: %s", getEnvVars())
 
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/", rootHandler)
@@ -48,12 +66,11 @@ func main() {
 		for {
 			select {
 			case <-ticker.C:
-				log.Printf("Server is running on port %s", port)
+				log.Printf("Server is running on port %s | Env vars: %s", port, getEnvVars())
 			}
 		}
 	}()
 
-	log.Printf("Server starting on port %s", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatal(err)
 	}
