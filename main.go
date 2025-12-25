@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 type HealthResponse struct {
@@ -39,6 +40,18 @@ func main() {
 
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/", rootHandler)
+
+	// Start logging goroutine
+	go func() {
+		ticker := time.NewTicker(2 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				log.Printf("Server is running on port %s", port)
+			}
+		}
+	}()
 
 	log.Printf("Server starting on port %s", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
